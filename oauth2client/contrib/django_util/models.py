@@ -49,12 +49,14 @@ class CredentialsField(models.Field):
         elif isinstance(value, oauth2client.client.Credentials):
             return value
         else:
+            decoded = base64.b64decode(encoding.smart_bytes(value))
             try:
-                return jsonpickle.decode(
-                    base64.b64decode(encoding.smart_bytes(value)).decode())
-            except ValueError:
-                return pickle.loads(
-                    base64.b64decode(encoding.smart_bytes(value)))
+                return jsonpickle.decode(decoded.decode())
+            except ValueError as e:
+                try:
+                    return pickle.loads(decoded)
+                except UnicodeDecodeError:
+                    return pickle.loads(decoded, encoding='latin1')
 
     def get_prep_value(self, value):
         """Overrides ``models.Field`` method. This is used to convert
